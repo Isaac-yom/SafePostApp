@@ -1,3 +1,4 @@
+/* eslint-disable import/no-unresolved */
 // Importer le driver PostgreSQLe
 import { Pool } from "pg";
 // Pool = classe qui gère un ensemble de connexions
