@@ -1,4 +1,3 @@
-// Les imports
 const Post = require('../models/Post');
 const { deleteFromCloudinary } = require('../config/cloudinary');
 
@@ -7,7 +6,7 @@ exports.createPost = async (req, res, next) => {
     try {
         const { platform, text, images, video, tags, notes, originalDate } = req.body;
 
-        // Validation 
+        // Validation basique
         if (!platform || !text) {
             return res.status(400).json({
                 success: false,
@@ -15,10 +14,18 @@ exports.createPost = async (req, res, next) => {
             });
         }
 
+        // Valider la plateforme
+        const validPlatforms = ['facebook', 'instagram', 'twitter', 'linkedin', 'tiktok'];
+        if (!validPlatforms.includes(platform.toLowerCase())) {
+            return res.status(400).json({
+                success: false,
+                error: `Plateforme invalide. Valeurs acceptées: ${validPlatforms.join(', ')}`
+            });
+        }
 
         // Créer la publication dans Neon
         const post = await Post.create({
-            userId: req.user.id,      // UUID(ça veut dire : identifiant universel unique) de l'utilisateur connecté
+            userId: req.user.id,      // UUID de l'utilisateur connecté
             platform,
             text,
             images: images || [],
@@ -33,13 +40,13 @@ exports.createPost = async (req, res, next) => {
         res.status(201).json({
             success: true,
             data: post,
-            message: 'Publication sauvegardée avec succès'
+            message: 'Publication sauvegardée avec succès !'
         });
 
     } catch (error) {
-        console.error('Erreur création post:', error);
+        console.error(' Erreur création post:', error);
         
-        // Gestion des erreurs PostgreSQL
+        // Gérer les erreurs PostgreSQL
         if (error.code === '23505') {  
             return res.status(400).json({
                 success: false,
@@ -47,7 +54,7 @@ exports.createPost = async (req, res, next) => {
             });
         }
         
-        if (error.code === '23503') {  
+        if (error.code === '23503') {  // Foreign key violation
             return res.status(400).json({
                 success: false,
                 error: 'Utilisateur invalide'
@@ -79,7 +86,7 @@ exports.getPosts = async (req, res, next) => {
             offset
         };
 
-        // Récupération des publications
+        // Récupérer les publications
         const posts = await Post.findByUser(req.user.id, filters);
 
         // Compter le total pour la pagination
@@ -88,7 +95,7 @@ exports.getPosts = async (req, res, next) => {
             search
         });
 
-        // Récupération des statistiques
+        // Récupérer les statistiques
         const stats = await Post.countByPlatform(req.user.id);
 
         res.status(200).json({
@@ -121,7 +128,7 @@ exports.getPost = async (req, res, next) => {
             });
         }
 
-        // Vérifier que l'utilisateur est le propriétaire (très important)
+        // Vérifier que l'utilisateur est le propriétaire
         if (post.userId !== req.user.id) {
             return res.status(403).json({
                 success: false,
@@ -235,7 +242,7 @@ exports.deletePost = async (req, res, next) => {
                 for (const image of post.images) {
                     if (image.publicId) {
                         await deleteFromCloudinary(image.publicId, 'image');
-                        console.log(`Image supprimée: ${image.publicId}`);
+                        console.log(` Image supprimée: ${image.publicId}`);
                     }
                 }
             }
@@ -270,6 +277,7 @@ exports.deletePost = async (req, res, next) => {
 
 exports.getStats = async (req, res, next) => {
     try {
+        // Utiliser la méthode getStats du modèle
         const stats = await Post.getStats(req.user.id);
 
         res.status(200).json({
@@ -282,3 +290,4 @@ exports.getStats = async (req, res, next) => {
         next(error);
     }
 };
+
